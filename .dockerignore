@@ -1,0 +1,13 @@
+# Keep the Dockerfiles out of the image. server/Dockerfile would otherwise be
+# pulled in by `COPY server ./server`; neither is needed at runtime.
+Dockerfile
+server/Dockerfile
+
+# Non-runtime files (kept out of the build context / image).
+.git
+.gitignore
+.dockerignore
+node_modules
+tests
+tools
+*.md

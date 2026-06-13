@@ -1,0 +1,10 @@
+{
+  "name": "system-design-playground",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "sw:bump": "node tools/update-sw-cache.mjs"
+  }
+}

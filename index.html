@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- connect-src is the page's outbound allowlist: itself (the optional
+       server proxy), the cloud AI provider APIs, and a local Ollama daemon.
+       If you self-host with a custom API base URL, add that origin here. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://dashscope-intl.aliyuncs.com http://localhost:11434 http://127.0.0.1:11434; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'" />
+  <title>System Design Playground</title>
+  <meta name="description" content="Practice system design interviews on an interactive canvas. Build architectures with AWS, Azure, GCP, and generic components, then get AI feedback on your design." />
+  <meta name="theme-color" content="#0f172a" />
+  <meta property="og:title" content="System Design Playground" />
+  <meta property="og:description" content="Build system architectures on an interactive canvas and get AI feedback on your design." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>System Design Playground</h1>
+    <button id="settings-btn" class="btn btn-icon" title="Model configuration" aria-label="Model configuration">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+  </header>
+
+  <main id="picker-screen" class="screen">
+    <div class="picker-controls">
+      <label class="switch">
+        <input type="checkbox" id="interview-toggle" />
+        <span>Interview mode (timed)</span>
+      </label>
+    </div>
+    <div class="filter-bar" id="filter-bar"></div>
+    <div class="card-grid" id="question-grid"></div>
+  </main>
+
+  <main id="playground-screen" class="screen hidden">
+    <div class="top-bar">
+      <button id="back-btn" class="btn btn-back">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back
+      </button>
+      <div class="challenge-title" id="challenge-title"></div>
+      <div id="timer-wrap" class="timer-wrap hidden">
+        <span id="timer-display" class="timer-display" role="timer" aria-label="Interview countdown - click to change the minutes" title="Click to change the minutes">⏱ 0:00</span>
+      </div>
+      <div class="top-actions">
+        <button id="reqs-btn" class="btn">Requirements</button>
+        <button id="save-btn" class="btn">Save</button>
+        <button id="test-input-btn" class="btn" title="Paste a model result to render it (testing, no API call)">Test input</button>
+        <button id="deep-review-btn" class="btn">Deep Review</button>
+        <button id="evaluate-btn" class="btn btn-primary">Evaluate</button>
+      </div>
+    </div>
+    <div class="timeup-banner hidden" id="timeup-banner">
+      <span>Time's up - you can keep working.</span>
+      <button id="timeup-dismiss" class="banner-dismiss" title="Dismiss" aria-label="Dismiss time's-up banner">×</button>
+    </div>
+    <div class="reqs-panel hidden" id="reqs-panel"></div>
+    <div class="workspace">
+      <aside class="palette" id="palette"></aside>
+      <section class="canvas-wrap">
+        <div class="zoom-sizer" id="zoom-sizer">
+          <div class="zoom-layer" id="zoom-layer">
+            <svg class="edge-layer" id="edge-layer"></svg>
+            <div class="canvas" id="canvas"></div>
+          </div>
+        </div>
+      </section>
+      <aside class="feedback-panel" id="feedback-panel" aria-live="polite" aria-label="Design feedback">
+        <p class="feedback-empty">Click <strong>Evaluate</strong> to get feedback on your design.</p>
+      </aside>
+    </div>
+  </main>
+
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-body">
+      <h2 id="settings-title">Model Configuration</h2>
+      <p id="settings-intro">Keys are kept in memory for this session only and sent nowhere except the provider you choose.</p>
+      <p id="proxy-note" class="hidden">API keys are configured in the server deployment; nothing is entered or stored in this browser.</p>
+      <label class="field-label" for="provider-select">Provider</label>
+      <select id="provider-select"></select>
+      <label class="field-label" for="model-select">Model</label>
+      <select id="model-select"></select>
+      <div id="key-section">
+        <label class="field-label" for="key-input">API key</label>
+        <input id="key-input" type="password" placeholder="..." autocomplete="off" />
+        <p class="field-hint">Use a dedicated key with a spend cap set at the provider. It is dropped when this tab closes.</p>
+        <label class="field-label" for="base-url-input">API base URL (optional)</label>
+        <input id="base-url-input" type="url" placeholder="https://gateway.example.com" autocomplete="off" />
+        <p class="field-hint">For self-hosted gateways; Ollama defaults to http://localhost:11434. Other origins must be added to the Content-Security-Policy in index.html.</p>
+      </div>
+      <p id="settings-error" class="fb-error hidden"></p>
+      <div class="modal-actions">
+        <button id="settings-cancel" class="btn">Cancel</button>
+        <button id="settings-save" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="preview-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+    <div class="modal-body modal-wide">
+      <h2 id="preview-title">Request preview</h2>
+      <p id="preview-destination"></p>
+      <p>The request body also carries the model name and a response token limit. Nothing else is sent.</p>
+      <details class="preview-section">
+        <summary>Evaluate request</summary>
+        <pre id="preview-evaluate" class="preview-pre"></pre>
+      </details>
+      <details class="preview-section">
+        <summary>Deep Review request</summary>
+        <pre id="preview-deep" class="preview-pre"></pre>
+      </details>
+      <details class="preview-section">
+        <summary>JSON payload</summary>
+        <pre id="preview-json" class="preview-pre"></pre>
+      </details>
+      <div class="modal-actions">
+        <button id="preview-close" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="test-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="test-title">
+    <div class="modal-body modal-wide">
+      <h2 id="test-title">Manual model result (testing)</h2>
+      <p>Paste the raw model output, then render it as if the model returned it - no API call. Code fences are tolerated.</p>
+      <textarea id="test-input" rows="10" placeholder='Evaluate JSON:&#10;{"score":78,"summary":"...","strengths":[{"title":"...","detail":"..."}],"concerns":[],"missing":[],"suggestions":[]}&#10;&#10;Deep Review JSON (node "id"s must match nodes on the canvas):&#10;[{"id":"n1","rating":"problem","role":"...","issues":["..."],"alternatives":["..."]}]'></textarea>
+      <p id="test-error" class="fb-error hidden"></p>
+      <div class="modal-actions">
+        <button id="test-cancel" class="btn">Cancel</button>
+        <button id="test-render-eval" class="btn">Render as Evaluate</button>
+        <button id="test-render-deep" class="btn btn-primary">Render as Deep Review</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
