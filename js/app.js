@@ -2,7 +2,8 @@ import { COMPONENTS } from './data/components.js';
 import { QUESTIONS } from './data/questions.js';
 import {
   createDesign, createNode, insertNode, createEdge, insertEdge,
-  removeNode, removeEdge, canRetargetEdge, retargetEdge, serializeDesign
+  removeNode, removeEdge, canRetargetEdge, retargetEdge, serializeDesign,
+  findEdgeBetween, markEdgeBidirectional
 } from './design.js';
 import { makeStorage } from './storage.js';
 import {
@@ -216,7 +217,7 @@ function openChallenge(question) {
     canvasEl: getEl('canvas'),
     edgeSvg: getEl('edge-layer'),
     design,
-    deps: { createNode, insertNode, createEdge, insertEdge, removeNode, removeEdge, canRetargetEdge, retargetEdge },
+    deps: { createNode, insertNode, createEdge, insertEdge, removeNode, removeEdge, canRetargetEdge, retargetEdge, findEdgeBetween, markEdgeBidirectional },
     onChange: handleDesignChange,
     onSelectNode: showNodeReview
   });
@@ -235,11 +236,11 @@ function openChallenge(question) {
 }
 
 let settingsResolve = null;
+let activeSettingsTab = 'cloud';
 
-function populateProviderSelect(selectedProvider) {
-  const select = getEl('provider-select');
+function fillProviderOptions(select, providers, selectedProvider) {
   select.innerHTML = '';
-  for (const [id, providerInfo] of Object.entries(getAvailableProviders())) {
+  for (const [id, providerInfo] of Object.entries(providers)) {
     const option = document.createElement('option');
     option.value = id;
     option.textContent = providerInfo.label;
@@ -248,14 +249,7 @@ function populateProviderSelect(selectedProvider) {
   select.value = selectedProvider;
 }
 
-function resolveModelForProvider(provider, storedModel) {
-  const info = getAvailableProviders()[provider];
-  const keepStored = storedModel && (info.models.includes(storedModel) || info.allowsCustomModels);
-  return keepStored ? storedModel : info.models[0];
-}
-
-function setModelOptions(models, selectedModel) {
-  const select = getEl('model-select');
+function fillModelOptions(select, models, selectedModel) {
   const options = selectedModel && !models.includes(selectedModel) ? [selectedModel, ...models] : models;
   select.innerHTML = '';
   for (const model of options) {
@@ -265,6 +259,15 @@ function setModelOptions(models, selectedModel) {
     select.appendChild(option);
   }
   if (selectedModel) select.value = selectedModel;
+}
+
+function pickModel(info, storedModel) {
+  const keepStored = storedModel && (info.models.includes(storedModel) || info.allowsCustomModels);
+  return keepStored ? storedModel : info.models[0];
+}
+
+function resolveModelForProvider(provider, storedModel) {
+  return pickModel(getAvailableProviders()[provider], storedModel);
 }
 
 async function fetchInstalledOllamaModels(baseUrl) {
@@ -280,33 +283,32 @@ async function fetchInstalledOllamaModels(baseUrl) {
 }
 
 function refreshOllamaModelOptions() {
-  const baseUrl = getEl('base-url-input').value.trim()
+  const baseUrl = getEl('selfhosted-baseurl-input').value.trim()
     || storage.getBaseUrl('ollama')
     || 'http://localhost:11434';
   fetchInstalledOllamaModels(baseUrl).then(models => {
-    if (!models || getEl('provider-select').value !== 'ollama') return;
-    setModelOptions(models, getEl('model-select').value);
+    if (!models || getEl('selfhosted-provider-select').value !== 'ollama') return;
+    fillModelOptions(getEl('selfhosted-model-select'), models, getEl('selfhosted-model-select').value);
   });
 }
 
-function populateModelSelect(provider, selectedModel) {
-  const info = getAvailableProviders()[provider];
-  const keepStored = selectedModel && (info.models.includes(selectedModel) || info.allowsCustomModels);
-  setModelOptions(info.models, keepStored ? selectedModel : null);
-  if (provider === 'ollama' && !proxyProviders) refreshOllamaModelOptions();
+function hostingOf(info) {
+  return info.hosting || (info.requiresApiKey === false ? 'self-hosted' : 'cloud');
 }
 
-function fillKeyFields(provider) {
-  getEl('key-input').value = storage.getApiKey(provider) || '';
-  getEl('key-input').placeholder = PROVIDERS[provider].keyPlaceholder;
-  getEl('base-url-input').value = storage.getBaseUrl(provider) || '';
+function providersByHosting(hosting) {
+  const available = getAvailableProviders();
+  return Object.fromEntries(Object.entries(available).filter(([, info]) => hostingOf(info) === hosting));
 }
 
-function applySettingsMode() {
-  const proxyActive = proxyProviders !== null;
-  getEl('key-section').classList.toggle('hidden', proxyActive);
-  getEl('settings-intro').classList.toggle('hidden', proxyActive);
-  getEl('proxy-note').classList.toggle('hidden', !proxyActive);
+function firstProvider(providers, storedProvider) {
+  return providers[storedProvider] ? storedProvider : Object.keys(providers)[0];
+}
+
+function fillKeyField(input, provider) {
+  const info = PROVIDERS[provider];
+  input.value = storage.getApiKey(provider) || '';
+  input.placeholder = info ? info.keyPlaceholder : '';
 }
 
 function resolveSelectableProvider() {
@@ -315,13 +317,74 @@ function resolveSelectableProvider() {
   return available[stored] ? stored : Object.keys(available)[0];
 }
 
-function openSettings() {
-  const provider = resolveSelectableProvider();
-  populateProviderSelect(provider);
-  populateModelSelect(provider, storage.getModel());
-  applySettingsMode();
-  if (!proxyProviders) fillKeyFields(provider);
+function populateCloudTab() {
+  const providers = providersByHosting('cloud');
+  const ids = Object.keys(providers);
+  getEl('cloud-empty').classList.toggle('hidden', ids.length > 0);
+  getEl('cloud-fields').classList.toggle('hidden', ids.length === 0);
+  if (!ids.length) return;
+  const provider = firstProvider(providers, storage.getProvider());
+  fillProviderOptions(getEl('cloud-provider-select'), providers, provider);
+  fillModelOptions(getEl('cloud-model-select'), providers[provider].models, pickModel(providers[provider], storage.getModel()));
+  fillKeyField(getEl('cloud-key-input'), provider);
+}
+
+function populateSelfHostedTab() {
+  const providers = providersByHosting('self-hosted');
+  const ids = Object.keys(providers);
+  getEl('selfhosted-empty').classList.toggle('hidden', ids.length > 0);
+  getEl('selfhosted-fields').classList.toggle('hidden', ids.length === 0);
+  if (!ids.length) return;
+  const provider = firstProvider(providers, storage.getProvider());
+  fillProviderOptions(getEl('selfhosted-provider-select'), providers, provider);
+  fillSelfHostedModel(provider, providers[provider]);
+  fillKeyField(getEl('selfhosted-key-input'), provider);
+  getEl('selfhosted-baseurl-input').value = storage.getBaseUrl(provider) || '';
+  applySelfHostedProviderFields();
+  if (provider === 'ollama' && !proxyProviders) refreshOllamaModelOptions();
+}
+
+function fillSelfHostedModel(provider, info) {
+  if (provider === 'custom') {
+    getEl('selfhosted-model-input').value = storage.getModel() || '';
+    return;
+  }
+  fillModelOptions(getEl('selfhosted-model-select'), info.models, pickModel(info, storage.getModel()));
+}
+
+function applySelfHostedProviderFields() {
+  const custom = getEl('selfhosted-provider-select').value === 'custom';
+  getEl('selfhosted-model-select-row').classList.toggle('hidden', custom);
+  getEl('selfhosted-model-input-row').classList.toggle('hidden', !custom);
+  getEl('selfhosted-credentials').classList.toggle('hidden', !custom || Boolean(proxyProviders));
+}
+
+function applyProxyVisibility() {
+  const proxy = Boolean(proxyProviders);
+  getEl('cloud-credentials').classList.toggle('hidden', proxy);
+  getEl('proxy-note').classList.toggle('hidden', !proxy);
+}
+
+function defaultSettingsTab() {
+  const info = getAvailableProviders()[storage.getProvider()];
+  return info && hostingOf(info) === 'self-hosted' ? 'selfhosted' : 'cloud';
+}
+
+function switchSettingsTab(tab) {
+  activeSettingsTab = tab;
+  const cloud = tab === 'cloud';
+  getEl('tab-cloud').classList.toggle('active', cloud);
+  getEl('tab-selfhosted').classList.toggle('active', !cloud);
+  getEl('panel-cloud').classList.toggle('hidden', !cloud);
+  getEl('panel-selfhosted').classList.toggle('hidden', cloud);
   getEl('settings-error').classList.add('hidden');
+}
+
+function openSettings() {
+  populateCloudTab();
+  populateSelfHostedTab();
+  applyProxyVisibility();
+  switchSettingsTab(defaultSettingsTab());
   getEl('settings-modal').classList.remove('hidden');
 }
 
@@ -330,10 +393,24 @@ function closeSettings(result) {
   if (settingsResolve) { settingsResolve(result); settingsResolve = null; }
 }
 
-function handleProviderChange() {
-  const provider = getEl('provider-select').value;
-  populateModelSelect(provider, null);
-  if (!proxyProviders) fillKeyFields(provider);
+function handleCloudProviderChange() {
+  const providers = providersByHosting('cloud');
+  const provider = getEl('cloud-provider-select').value;
+  fillModelOptions(getEl('cloud-model-select'), providers[provider].models, null);
+  fillKeyField(getEl('cloud-key-input'), provider);
+}
+
+function handleSelfHostedProviderChange() {
+  const providers = providersByHosting('self-hosted');
+  const provider = getEl('selfhosted-provider-select').value;
+  if (provider === 'custom') {
+    getEl('selfhosted-model-input').value = '';
+  } else {
+    fillModelOptions(getEl('selfhosted-model-select'), providers[provider].models, null);
+  }
+  fillKeyField(getEl('selfhosted-key-input'), provider);
+  getEl('selfhosted-baseurl-input').value = storage.getBaseUrl(provider) || '';
+  applySelfHostedProviderFields();
 }
 
 function showSettingsError(message) {
@@ -343,29 +420,70 @@ function showSettingsError(message) {
 }
 
 function saveSettings() {
-  const provider = getEl('provider-select').value;
-  const model = getEl('model-select').value;
+  if (activeSettingsTab === 'cloud') { saveCloudSettings(); return; }
+  saveSelfHostedSettings();
+}
+
+function saveCloudSettings() {
+  const provider = getEl('cloud-provider-select').value;
+  if (!provider) {
+    showSettingsError('No cloud models are available in this deployment.');
+    return;
+  }
+  const model = getEl('cloud-model-select').value;
   storage.setProvider(provider);
   storage.setModel(model);
-
   if (proxyProviders) {
     closeSettings({ transport: 'proxy', provider, model });
     return;
   }
-
-  const apiKey = getEl('key-input').value.trim();
-  const baseUrl = getEl('base-url-input').value.trim();
-  if (baseUrl && !/^https?:\/\//.test(baseUrl)) {
-    showSettingsError('The API base URL must start with https:// (or http:// for local gateways).');
-    return;
-  }
-  if (!apiKey && isApiKeyRequired({ provider, baseUrl })) {
+  const apiKey = getEl('cloud-key-input').value.trim();
+  if (!apiKey && isApiKeyRequired({ provider })) {
     showSettingsError('Enter an API key for the selected provider.');
     return;
   }
   storage.setSessionApiKey(provider, apiKey);
+  storage.setBaseUrl(provider, '');
+  closeSettings({ transport: 'direct', provider, model, apiKey: apiKey || undefined });
+}
+
+function saveSelfHostedSettings() {
+  const provider = getEl('selfhosted-provider-select').value;
+  if (!provider) {
+    showSettingsError('No self-hosted models are available in this deployment.');
+    return;
+  }
+  const custom = provider === 'custom';
+  const model = custom ? getEl('selfhosted-model-input').value.trim() : getEl('selfhosted-model-select').value;
+  if (!model) {
+    showSettingsError('Enter a model name.');
+    return;
+  }
+  storage.setProvider(provider);
+  storage.setModel(model);
+  if (proxyProviders) {
+    closeSettings({ transport: 'proxy', provider, model });
+    return;
+  }
+  if (!custom) {
+    storage.setSessionApiKey(provider, '');
+    storage.setBaseUrl(provider, '');
+    closeSettings({ transport: 'direct', provider, model });
+    return;
+  }
+  const apiKey = getEl('selfhosted-key-input').value.trim();
+  const baseUrl = getEl('selfhosted-baseurl-input').value.trim();
+  if (!baseUrl) {
+    showSettingsError('Enter the gateway base URL.');
+    return;
+  }
+  if (!/^https?:\/\//.test(baseUrl)) {
+    showSettingsError('The gateway base URL must start with https:// (or http:// for local gateways).');
+    return;
+  }
+  storage.setSessionApiKey(provider, apiKey);
   storage.setBaseUrl(provider, baseUrl);
-  closeSettings({ transport: 'direct', provider, model, apiKey: apiKey || undefined, baseUrl: baseUrl || undefined });
+  closeSettings({ transport: 'direct', provider, model, apiKey: apiKey || undefined, baseUrl });
 }
 
 function readStoredProviderConfig() {
@@ -549,9 +667,12 @@ function init() {
   getEl('timeup-dismiss').addEventListener('click', () => getEl('timeup-banner').classList.add('hidden'));
 
   getEl('settings-btn').addEventListener('click', openSettings);
-  getEl('provider-select').addEventListener('change', handleProviderChange);
-  getEl('base-url-input').addEventListener('change', () => {
-    if (getEl('provider-select').value === 'ollama') refreshOllamaModelOptions();
+  getEl('tab-cloud').addEventListener('click', () => switchSettingsTab('cloud'));
+  getEl('tab-selfhosted').addEventListener('click', () => switchSettingsTab('selfhosted'));
+  getEl('cloud-provider-select').addEventListener('change', handleCloudProviderChange);
+  getEl('selfhosted-provider-select').addEventListener('change', handleSelfHostedProviderChange);
+  getEl('selfhosted-baseurl-input').addEventListener('change', () => {
+    if (getEl('selfhosted-provider-select').value === 'ollama') refreshOllamaModelOptions();
   });
   getEl('settings-save').addEventListener('click', saveSettings);
   getEl('settings-cancel').addEventListener('click', () => closeSettings(null));

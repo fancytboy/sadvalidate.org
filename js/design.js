@@ -21,9 +21,18 @@ export function removeNode(design, nodeId) {
   design.edges = design.edges.filter(edge => edge.from !== nodeId && edge.to !== nodeId);
 }
 
+export function findEdgeBetween({ design, nodeAId, nodeBId, ignoreEdgeId = null }) {
+  return design.edges.find(edge => edge.id !== ignoreEdgeId &&
+    ((edge.from === nodeAId && edge.to === nodeBId) || (edge.from === nodeBId && edge.to === nodeAId))) || null;
+}
+
 function areNodesLinked({ design, nodeAId, nodeBId, ignoreEdgeId = null }) {
-  return design.edges.some(edge => edge.id !== ignoreEdgeId &&
-    ((edge.from === nodeAId && edge.to === nodeBId) || (edge.from === nodeBId && edge.to === nodeAId)));
+  return findEdgeBetween({ design, nodeAId, nodeBId, ignoreEdgeId }) !== null;
+}
+
+export function markEdgeBidirectional(design, edgeId) {
+  const edge = design.edges.find(candidate => candidate.id === edgeId);
+  if (edge) edge.bidirectional = true;
 }
 
 export function createEdge(design, { from, to, label = '' }) {
@@ -63,6 +72,10 @@ export function serializeDesign(design) {
       if (node.description) out.description = node.description;
       return out;
     }),
-    edges: design.edges.map(({ from, to, label }) => ({ from, to, label }))
+    edges: design.edges.map(({ from, to, label, bidirectional }) => {
+      const out = { from, to, label };
+      if (bidirectional) out.bidirectional = true;
+      return out;
+    })
   };
 }

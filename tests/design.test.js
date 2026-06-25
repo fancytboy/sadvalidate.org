@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createDesign, createNode, insertNode, removeNode,
-  createEdge, insertEdge, removeEdge, canRetargetEdge, retargetEdge, serializeDesign
+  createEdge, insertEdge, removeEdge, canRetargetEdge, retargetEdge, serializeDesign,
+  findEdgeBetween, markEdgeBidirectional
 } from '../js/design.js';
 
 // Test helpers composing the pure builders with their insert commands the same
@@ -134,6 +135,34 @@ test('retargetEdge re-points the chosen end and ignores unknown edges', () => {
   assert.equal(design.edges[0].from, b.id);
   assert.equal(canRetargetEdge(design, { edgeId: 'nope', end: 'to', targetNodeId: c.id }), false);
   retargetEdge(design, { edgeId: 'nope', end: 'to', targetNodeId: c.id }); // no-op, no throw
+});
+
+test('findEdgeBetween locates an edge in either direction and ignores a given edge', () => {
+  const design = createDesign('q');
+  const a = addNode(design, { type: 'A', label: 'A', platform: 'AWS', x: 0, y: 0 });
+  const b = addNode(design, { type: 'B', label: 'B', platform: 'AWS', x: 0, y: 0 });
+  const c = addNode(design, { type: 'C', label: 'C', platform: 'AWS', x: 0, y: 0 });
+  const edge = addEdge(design, a.id, b.id, '');
+  assert.equal(findEdgeBetween({ design, nodeAId: a.id, nodeBId: b.id }), edge);
+  assert.equal(findEdgeBetween({ design, nodeAId: b.id, nodeBId: a.id }), edge); // reverse direction
+  assert.equal(findEdgeBetween({ design, nodeAId: a.id, nodeBId: c.id }), null); // unconnected
+  assert.equal(findEdgeBetween({ design, nodeAId: a.id, nodeBId: b.id, ignoreEdgeId: edge.id }), null);
+});
+
+test('markEdgeBidirectional flags the edge and serializeDesign carries it only when set', () => {
+  const design = createDesign('q');
+  const a = addNode(design, { type: 'A', label: 'Alpha', platform: 'AWS', x: 0, y: 0 });
+  const b = addNode(design, { type: 'B', label: 'Beta', platform: 'AWS', x: 0, y: 0 });
+  const c = addNode(design, { type: 'C', label: 'Gamma', platform: 'AWS', x: 0, y: 0 });
+  const edgeAB = addEdge(design, a.id, b.id, 'calls');
+  addEdge(design, b.id, c.id, 'reads');
+  markEdgeBidirectional(design, edgeAB.id);
+  assert.equal(edgeAB.bidirectional, true);
+  markEdgeBidirectional(design, 'nope'); // unknown id is a no-op, no throw
+  assert.deepEqual(serializeDesign(design).edges, [
+    { from: 'n1', to: 'n2', label: 'calls', bidirectional: true },
+    { from: 'n2', to: 'n3', label: 'reads' }
+  ]);
 });
 
 test('serializeDesign includes description only when set, and never category', () => {

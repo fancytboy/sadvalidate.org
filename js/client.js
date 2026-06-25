@@ -6,32 +6,45 @@ export const PROVIDERS = {
     label: 'Anthropic',
     models: ['claude-opus-4-8', 'claude-fable-5', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
     keyPlaceholder: 'sk-ant-...',
-    requiresApiKey: true
+    requiresApiKey: true,
+    hosting: 'cloud'
   },
   openai: {
     label: 'OpenAI',
     models: ['gpt-5.5', 'gpt-5.2', 'gpt-5.2-chat-latest'],
     keyPlaceholder: 'sk-...',
-    requiresApiKey: true
+    requiresApiKey: true,
+    hosting: 'cloud'
   },
   gemini: {
     label: 'Google Gemini',
     models: ['gemini-3.5-flash', 'gemini-3.1-pro-preview'],
     keyPlaceholder: 'AIza...',
-    requiresApiKey: true
+    requiresApiKey: true,
+    hosting: 'cloud'
   },
   qwen: {
     label: 'Qwen (DashScope)',
     models: ['qwen3-max', 'qwen3.5-plus', 'qwen3.5-flash'],
     keyPlaceholder: 'sk-...',
-    requiresApiKey: true
+    requiresApiKey: true,
+    hosting: 'cloud'
   },
   ollama: {
-    label: 'Ollama (local)',
+    label: 'Ollama',
     models: ['llama3.3', 'qwen3', 'gemma3', 'deepseek-r1', 'gpt-oss'],
     keyPlaceholder: 'not required',
     requiresApiKey: false,
-    allowsCustomModels: true
+    allowsCustomModels: true,
+    hosting: 'self-hosted'
+  },
+  custom: {
+    label: 'Custom',
+    models: [],
+    keyPlaceholder: 'optional',
+    requiresApiKey: false,
+    allowsCustomModels: true,
+    hosting: 'self-hosted'
   }
 };
 
@@ -113,6 +126,17 @@ const PROVIDER_ADAPTERS = {
   ollama: {
     defaultBaseUrl: 'http://localhost:11434',
     defaultTimeoutMs: 300000,
+    buildRequest(params) {
+      return buildOpenAiCompatibleRequest({
+        ...params,
+        url: `${params.baseUrl}/v1/chat/completions`,
+        maxTokensParam: 'max_tokens'
+      });
+    },
+    extractText: extractOpenAiCompatibleText
+  },
+  custom: {
+    defaultBaseUrl: '',
     buildRequest(params) {
       return buildOpenAiCompatibleRequest({
         ...params,

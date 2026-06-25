@@ -9,7 +9,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://dashscope-intl.aliyuncs.com http://localhost:11434 http://127.0.0.1:11434; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'" />
   <title>System Design Playground</title>
   <meta name="description" content="Practice system design interviews on an interactive canvas. Build architectures with AWS, Azure, GCP, and generic components, then get AI feedback on your design." />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#161718" />
   <meta property="og:title" content="System Design Playground" />
   <meta property="og:description" content="Build system architectures on an interactive canvas and get AI feedback on your design." />
   <meta property="og:type" content="website" />
@@ -78,20 +78,51 @@
   <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="modal-body">
       <h2 id="settings-title">Model Configuration</h2>
-      <p id="settings-intro">Keys are kept in memory for this session only and sent nowhere except the provider you choose.</p>
-      <p id="proxy-note" class="hidden">API keys are configured in the server deployment; nothing is entered or stored in this browser.</p>
-      <label class="field-label" for="provider-select">Provider</label>
-      <select id="provider-select"></select>
-      <label class="field-label" for="model-select">Model</label>
-      <select id="model-select"></select>
-      <div id="key-section">
-        <label class="field-label" for="key-input">API key</label>
-        <input id="key-input" type="password" placeholder="..." autocomplete="off" />
-        <p class="field-hint">Use a dedicated key with a spend cap set at the provider. It is dropped when this tab closes.</p>
-        <label class="field-label" for="base-url-input">API base URL (optional)</label>
-        <input id="base-url-input" type="url" placeholder="https://gateway.example.com" autocomplete="off" />
-        <p class="field-hint">For self-hosted gateways; Ollama defaults to http://localhost:11434. Other origins must be added to the Content-Security-Policy in index.html.</p>
+      <div class="settings-tabs" role="tablist" aria-label="Model hosting">
+        <button id="tab-cloud" type="button" class="settings-tab" role="tab">Cloud</button>
+        <button id="tab-selfhosted" type="button" class="settings-tab" role="tab">Self-hosted</button>
       </div>
+      <p id="proxy-note" class="field-hint hidden">API keys are configured in the server deployment; nothing is entered or stored in this browser.</p>
+
+      <div id="panel-cloud" class="settings-panel" role="tabpanel" aria-labelledby="tab-cloud">
+        <p id="cloud-empty" class="field-hint hidden">No cloud models are available in this deployment.</p>
+        <div id="cloud-fields">
+          <label class="field-label" for="cloud-provider-select">Provider</label>
+          <select id="cloud-provider-select"></select>
+          <label class="field-label" for="cloud-model-select">Model</label>
+          <select id="cloud-model-select"></select>
+          <div id="cloud-credentials">
+            <label class="field-label" for="cloud-key-input">API key</label>
+            <input id="cloud-key-input" type="password" placeholder="..." autocomplete="off" />
+            <p class="field-hint">Sent to the provider's managed cloud API. Use a dedicated key with a spend cap; it is dropped when this tab closes.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-selfhosted" class="settings-panel hidden" role="tabpanel" aria-labelledby="tab-selfhosted">
+        <p id="selfhosted-empty" class="field-hint hidden">No self-hosted models are available in this deployment.</p>
+        <div id="selfhosted-fields">
+          <label class="field-label" for="selfhosted-provider-select">Provider</label>
+          <select id="selfhosted-provider-select"></select>
+          <div id="selfhosted-model-select-row">
+            <label class="field-label" for="selfhosted-model-select">Model</label>
+            <select id="selfhosted-model-select"></select>
+          </div>
+          <div id="selfhosted-model-input-row" class="hidden">
+            <label class="field-label" for="selfhosted-model-input">Model</label>
+            <input id="selfhosted-model-input" type="text" placeholder="model name served by your gateway" autocomplete="off" />
+          </div>
+          <div id="selfhosted-credentials" class="hidden">
+            <label class="field-label" for="selfhosted-baseurl-input">Gateway base URL</label>
+            <input id="selfhosted-baseurl-input" type="url" placeholder="https://gateway.example.com" autocomplete="off" />
+            <p class="field-hint">Your self-hosted endpoint. Its origin must be added to the Content-Security-Policy in index.html.</p>
+            <label class="field-label" for="selfhosted-key-input">API key (optional)</label>
+            <input id="selfhosted-key-input" type="password" placeholder="not required" autocomplete="off" />
+            <p class="field-hint">Only if your gateway requires authentication. Dropped when this tab closes.</p>
+          </div>
+        </div>
+      </div>
+
       <p id="settings-error" class="fb-error hidden"></p>
       <div class="modal-actions">
         <button id="settings-cancel" class="btn">Cancel</button>

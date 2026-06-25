@@ -2,6 +2,7 @@
 // the results.
 
 import { neutralizeDesign, fenceData, DATA_FENCE } from './client.js';
+import { statusIconSvg } from './util.js';
 
 const SYSTEM_PROMPT =
   'You are a senior system design interviewer. You evaluate a candidate\'s ' +
@@ -92,9 +93,9 @@ export function parseFeedback(text) {
 }
 
 const FEEDBACK_GROUPS = [
-  { key: 'strengths',   label: 'Strengths',   cls: 'fb-good', glyph: '✓' },
+  { key: 'strengths',   label: 'Strengths',   cls: 'fb-good', glyph: '✓', status: 'good' },
   { key: 'concerns',    label: 'Concerns',    cls: 'fb-warn', glyph: '!' },
-  { key: 'missing',     label: 'Missing',     cls: 'fb-bad',  glyph: '✗' },
+  { key: 'missing',     label: 'Missing',     cls: 'fb-bad',  glyph: '✗', status: 'problem' },
   { key: 'suggestions', label: 'Suggestions', cls: 'fb-tip',  glyph: '💡' }
 ];
 
@@ -116,7 +117,13 @@ export function renderFeedback(host, feedback) {
     const groupEl = document.createElement('div');
     groupEl.className = 'fb-group';
     const heading = document.createElement('h4');
-    heading.textContent = `${group.glyph} ${group.label}`;
+    const headingIcon = statusIconSvg(group.status, 14);
+    if (headingIcon) {
+      heading.className = `fb-icon-${group.status}`;
+      heading.innerHTML = `${headingIcon} ${group.label}`;
+    } else {
+      heading.textContent = `${group.glyph} ${group.label}`;
+    }
     groupEl.appendChild(heading);
     for (const item of items) {
       const itemEl = document.createElement('div');
@@ -219,7 +226,7 @@ export async function reviewNodes({ question, serializedDesign, aiClient }) {
   return parseNodeReviews(text);
 }
 
-const RATING_LABELS = { good: '✓ Good fit', warning: '! Has risks', problem: '✗ Problem' };
+const RATING_LABELS = { good: 'Good fit', warning: '! Has risks', problem: 'Problem' };
 
 export function renderNodeReviewPrompt(host) {
   host.innerHTML = '';
@@ -242,7 +249,10 @@ export function renderNodeReview(host, nodeLabel, review) {
   title.textContent = nodeLabel;
   const rating = document.createElement('span');
   rating.className = `nr-rating nr-rating-${review.rating}`;
-  rating.textContent = RATING_LABELS[review.rating] || review.rating;
+  const ratingIcon = statusIconSvg(review.rating, 13);
+  const ratingLabel = RATING_LABELS[review.rating] || review.rating;
+  if (ratingIcon) rating.innerHTML = `${ratingIcon} ${ratingLabel}`;
+  else rating.textContent = ratingLabel;
   header.append(title, rating);
   host.appendChild(header);
 
