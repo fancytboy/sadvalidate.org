@@ -1,4 +1,4 @@
-import { escapeHtml } from './util.js';
+import { escapeHtml, statusIconSvg } from './util.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -208,7 +208,9 @@ export function createCanvas({ canvasEl, edgeSvg, design, deps, onChange = () =>
       path.setAttribute('fill', 'none');
       path.setAttribute('stroke', selected ? '#2563eb' : '#94a3b8');
       path.setAttribute('stroke-width', selected ? '2.5' : '1.5');
-      path.setAttribute('marker-end', selected ? 'url(#arrow-sel)' : 'url(#arrow)');
+      const marker = selected ? 'url(#arrow-sel)' : 'url(#arrow)';
+      path.setAttribute('marker-end', marker);
+      if (edge.bidirectional) path.setAttribute('marker-start', marker);
       path.style.pointerEvents = 'none';
       edgeSvg.appendChild(path);
 
@@ -453,6 +455,15 @@ export function createCanvas({ canvasEl, edgeSvg, design, deps, onChange = () =>
     const targetId = findNodeIdUnderPointer(ev);
     endLink();
     if (fromId && targetId && targetId !== fromId) {
+      const existing = deps.findEdgeBetween({ design, nodeAId: fromId, nodeBId: targetId });
+      if (existing) {
+        if (!existing.bidirectional) {
+          deps.markEdgeBidirectional(design, existing.id);
+          redrawEdges();
+          onChange();
+        }
+        return;
+      }
       const edge = deps.createEdge(design, { from: fromId, to: targetId, label: '' });
       if (edge) {
         deps.insertEdge(design, edge);
@@ -743,7 +754,10 @@ export function createCanvas({ canvasEl, edgeSvg, design, deps, onChange = () =>
       if (!review) continue;
       const badge = document.createElement('span');
       badge.className = `node-badge node-badge-${review.rating}`;
-      badge.textContent = REVIEW_GLYPHS[review.rating] || '';
+      badge.setAttribute('aria-label', review.rating);
+      const icon = statusIconSvg(review.rating, 12);
+      if (icon) badge.innerHTML = icon;
+      else badge.textContent = REVIEW_GLYPHS[review.rating] || '';
       el.appendChild(badge);
     }
   }
