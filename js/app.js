@@ -1,5 +1,5 @@
 import { COMPONENTS } from './data/components.js';
-import { QUESTIONS } from './data/questions.js';
+import { QUESTIONS, FREE_DESIGN } from './data/questions.js';
 import {
   createDesign, createNode, insertNode, createEdge, insertEdge,
   removeNode, removeEdge, canRetargetEdge, retargetEdge, serializeDesign,
@@ -59,6 +59,23 @@ function createTransportClient(config) {
 }
 
 let activeChallenge = null;
+
+const THEME_COLORS = { dark: '#161718', light: '#f4f5f6' };
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', THEME_COLORS[theme]);
+  const button = getEl('theme-btn');
+  const label = theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+  button.title = label;
+  button.setAttribute('aria-label', label);
+}
+
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  storage.setTheme(next);
+  applyTheme(next);
+}
 
 const PRESET_MINUTES = { Easy: 15, Medium: 30, Hard: 45 };
 let interviewMode = false;
@@ -133,8 +150,20 @@ function renderPicker() {
   const platforms = ['All', 'AWS', 'Azure', 'GCP', 'Agnostic'];
   let activePlatform = 'All';
 
+  function buildFreeDesignCard() {
+    const card = document.createElement('div');
+    card.className = 'q-card q-card-free';
+    card.innerHTML =
+      `<h3>${escapeHtml(FREE_DESIGN.title)}</h3>` +
+      '<p class="q-free-hint">Blank canvas - sketch any system you like.</p>' +
+      '<div class="q-tags"><span class="tag">Sandbox</span></div>';
+    card.addEventListener('click', () => openChallenge(FREE_DESIGN));
+    return card;
+  }
+
   function drawQuestionCards() {
     grid.innerHTML = '';
+    grid.appendChild(buildFreeDesignCard());
     QUESTIONS.filter(q => activePlatform === 'All' || q.platform === activePlatform).forEach(question => {
       const card = document.createElement('div');
       card.className = 'q-card';
@@ -201,6 +230,7 @@ function openChallenge(question) {
   reqsPanel.innerHTML = `<strong>${escapeHtml(question.prompt)}</strong><ul>` +
     question.requirements.map(req => `<li>${escapeHtml(req)}</li>`).join('') + '</ul>';
   reqsPanel.classList.add('hidden');
+  getEl('reqs-btn').classList.toggle('hidden', !question.requirements.length);
 
   renderPalette({
     root: getEl('palette'),
@@ -656,6 +686,8 @@ function renderManualResult(modeKey) {
 }
 
 function init() {
+  applyTheme(document.documentElement.dataset.theme || 'light');
+  getEl('theme-btn').addEventListener('click', toggleTheme);
   renderPicker();
   detectProxyProviders().then(providers => { proxyProviders = providers; });
 

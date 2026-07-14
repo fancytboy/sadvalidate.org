@@ -179,9 +179,9 @@ export function createCanvas({ canvasEl, edgeSvg, design, deps, onChange = () =>
     const defs = document.createElementNS(SVG_NS, 'defs');
     defs.innerHTML =
       '<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
-      '<path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>' +
+      '<path d="M0,0 L10,5 L0,10 z" class="edge-arrow"/></marker>' +
       '<marker id="arrow-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
-      '<path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>';
+      '<path d="M0,0 L10,5 L0,10 z" class="edge-arrow-selected"/></marker>';
     edgeSvg.appendChild(defs);
     for (const edge of design.edges) {
       const from = design.nodes.find(node => node.id === edge.from);
@@ -205,13 +205,10 @@ export function createCanvas({ canvasEl, edgeSvg, design, deps, onChange = () =>
 
       const path = document.createElementNS(SVG_NS, 'path');
       path.setAttribute('d', pathD);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', selected ? '#2563eb' : '#94a3b8');
-      path.setAttribute('stroke-width', selected ? '2.5' : '1.5');
+      path.setAttribute('class', selected ? 'edge-path selected' : 'edge-path');
       const marker = selected ? 'url(#arrow-sel)' : 'url(#arrow)';
       path.setAttribute('marker-end', marker);
       if (edge.bidirectional) path.setAttribute('marker-start', marker);
-      path.style.pointerEvents = 'none';
       edgeSvg.appendChild(path);
 
       let labelText = null;
@@ -219,10 +216,7 @@ export function createCanvas({ canvasEl, edgeSvg, design, deps, onChange = () =>
         labelText = document.createElementNS(SVG_NS, 'text');
         labelText.setAttribute('x', (points.x1 + points.x2) / 2);
         labelText.setAttribute('y', (points.y1 + points.y2) / 2 - 6);
-        labelText.setAttribute('fill', '#94a3b8');
-        labelText.setAttribute('font-size', '11');
-        labelText.setAttribute('text-anchor', 'middle');
-        labelText.style.pointerEvents = 'none';
+        labelText.setAttribute('class', 'edge-label');
         labelText.textContent = edge.label;
         edgeSvg.appendChild(labelText);
       }

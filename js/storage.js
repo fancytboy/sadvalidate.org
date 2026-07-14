@@ -5,6 +5,7 @@ const API_KEY_PREFIX = 'sdp.key.';
 const BASE_URL_PREFIX = 'sdp.baseUrl.'; // sdp.baseUrl.<provider>
 const PROVIDER_KEY = 'sdp.provider';
 const MODEL_KEY = 'sdp.model';
+const THEME_KEY = 'sdp.theme';
 const DESIGN_PREFIX = 'sdp.design.';
 const DESIGN_VERSION = 1;
 
@@ -48,6 +49,12 @@ export function makeStorage(backend) {
     },
     setModel(model) {
       store.setItem(MODEL_KEY, model);
+    },
+    getTheme() {
+      return store.getItem(THEME_KEY);
+    },
+    setTheme(theme) {
+      store.setItem(THEME_KEY, theme);
     },
     saveDesign(design) {
       store.setItem(DESIGN_PREFIX + design.question, JSON.stringify({ v: DESIGN_VERSION, design }));

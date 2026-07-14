@@ -1,3 +1,11 @@
+export const FREE_DESIGN = {
+  id: 'free-design',
+  title: 'Free Design',
+  prompt: 'The candidate sketched a system of their own choosing on a blank canvas. Infer the system\'s intent from its components, labels, descriptions, and connections, then evaluate whether the architecture is coherent, scalable, and fit for that inferred purpose.',
+  requirements: [],
+  expectsConcepts: []
+};
+
 export const QUESTIONS = [
   {
     id: 'url-shortener-aws',

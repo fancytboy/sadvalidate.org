@@ -4,8 +4,8 @@
   "description": "Practice system design interviews on an interactive canvas with AI feedback.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#161718",
-  "theme_color": "#161718",
+  "background_color": "#f4f5f6",
+  "theme_color": "#f4f5f6",
   "icons": [
     { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]

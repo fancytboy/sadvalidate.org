@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-14
+
+### Added
+
+- Light/dark theme toggle in the header. The choice persists across sessions
+  (`sdp.theme`), a pre-paint `js/theme.js` script applies the theme before
+  first render to avoid a flash, and SVG edges, arrowheads, and edge labels
+  re-color live through CSS classes instead of inline attributes.
+- Free Design mode: a Sandbox card pinned first in the question picker opens
+  a blank canvas with no prompt or requirements. Save, Evaluate, and Deep
+  Review work unchanged; evaluation prompts ask the model to infer the
+  design's intent, and the Requirements button hides for questions without
+  requirements.
+
+### Changed
+
+- The app now defaults to light mode for first-time visitors; dark mode is
+  an explicit choice via the toggle. Manifest and theme-color metadata
+  follow the light default.
+
 ## [0.2.0] - 2026-06-25
 
 ### Added
