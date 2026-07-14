@@ -64,6 +64,21 @@ test('provider and model round-trip with sensible defaults', () => {
   assert.equal(storage.getModel(), 'gemini-3.5-flash');
 });
 
+test('theme round-trips and defaults to null when unset', () => {
+  const storage = makeStorage(mockBackend());
+  assert.equal(storage.getTheme(), null);
+  storage.setTheme('light');
+  assert.equal(storage.getTheme(), 'light');
+  storage.setTheme('dark');
+  assert.equal(storage.getTheme(), 'dark');
+});
+
+test('theme persists across storage instances over the same backend', () => {
+  const backend = mockBackend();
+  makeStorage(backend).setTheme('light');
+  assert.equal(makeStorage(backend).getTheme(), 'light');
+});
+
 test('saveDesign wraps the design in a versioned envelope', () => {
   const backend = mockBackend();
   const storage = makeStorage(backend);

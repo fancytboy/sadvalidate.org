@@ -25,6 +25,25 @@ test('buildEvaluationPrompt includes question, requirements, concepts, design, a
   assert.match(user, /JSON/);
 });
 
+test('buildEvaluationPrompt omits Requirements and Concepts sections when empty', () => {
+  const freeform = { title: 'Free Design', prompt: 'Infer the intent.', requirements: [], expectsConcepts: [] };
+  const { user } = buildEvaluationPrompt(freeform, serialized);
+  assert.doesNotMatch(user, /## Requirements/);
+  assert.doesNotMatch(user, /## Concepts/);
+  assert.doesNotMatch(user, /against the challenge and requirements/);
+  assert.match(user, /Free Design/);
+  assert.match(user, /Lambda/);
+  assert.match(user, /JSON/);
+});
+
+test('buildNodeReviewPrompt omits the Requirements section when empty', () => {
+  const freeform = { title: 'Free Design', prompt: 'Infer the intent.', requirements: [], expectsConcepts: [] };
+  const { user } = buildNodeReviewPrompt(freeform, serialized);
+  assert.doesNotMatch(user, /## Requirements/);
+  assert.match(user, /Free Design/);
+  assert.match(user, /"id"/);
+});
+
 test('parseFeedback parses a clean JSON object', () => {
   const fb = parseFeedback(JSON.stringify({
     score: 80, summary: 'good',

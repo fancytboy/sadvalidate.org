@@ -43,25 +43,32 @@ function extractJsonPayload({ text, openChar, closeChar, errorMessage }) {
   }
 }
 
+function buildRequirementsSection(requirements) {
+  if (!requirements.length) return null;
+  return `## Requirements\n${requirements.map(req => `- ${req}`).join('\n')}`;
+}
+
+function buildConceptsSection(concepts) {
+  if (!concepts.length) return null;
+  return `## Concepts a strong answer usually covers\n${concepts.join(', ')}`;
+}
+
+function describeEvaluationTarget(question) {
+  return question.requirements.length ? 'the challenge and requirements' : 'the challenge';
+}
+
 export function buildEvaluationPrompt(question, serializedDesign) {
-  const requirementsList = question.requirements.map(req => `- ${req}`).join('\n');
-  const concepts = question.expectsConcepts.join(', ');
-  const user =
+  const user = [
 `# Challenge: ${question.title}
 
-${question.prompt}
-
-## Requirements
-${requirementsList}
-
-## Concepts a strong answer usually covers
-${concepts}
-
-## The candidate's design (JSON: nodes are components, edges are connections)
+${question.prompt}`,
+buildRequirementsSection(question.requirements),
+buildConceptsSection(question.expectsConcepts),
+`## The candidate's design (JSON: nodes are components, edges are connections)
 ${buildDesignDataBlock(serializedDesign)}
 
 ## Your task
-Evaluate the design against the challenge and requirements. Respond with ONLY a
+Evaluate the design against ${describeEvaluationTarget(question)}. Respond with ONLY a
 JSON object (no prose, no code fences) of exactly this shape:
 
 {
@@ -73,7 +80,8 @@ JSON object (no prose, no code fences) of exactly this shape:
   "suggestions": [{ "title": "<short>", "detail": "<nice-to-have improvement>" }]
 }
 
-Each array may be empty. Keep titles under 6 words and details under 2 sentences.`;
+Each array may be empty. Keep titles under 6 words and details under 2 sentences.`
+  ].filter(Boolean).join('\n\n');
 
   return { system: SYSTEM_PROMPT, user };
 }
@@ -168,16 +176,12 @@ const VALID_RATINGS = new Set(['good', 'warning', 'problem']);
 const DEEP_REVIEW_MAX_TOKENS = 4000;
 
 export function buildNodeReviewPrompt(question, serializedDesign) {
-  const requirementsList = question.requirements.map(req => `- ${req}`).join('\n');
-  const user =
+  const user = [
 `# Challenge: ${question.title}
 
-${question.prompt}
-
-## Requirements
-${requirementsList}
-
-## The candidate's design (JSON: nodes are components, edges are connections)
+${question.prompt}`,
+buildRequirementsSection(question.requirements),
+`## The candidate's design (JSON: nodes are components, edges are connections)
 ${buildDesignDataBlock(serializedDesign)}
 
 ## Your task
@@ -196,7 +200,8 @@ fences) with exactly one object per node, using the node's "id":
 
 Rate "good" if it fits well, "warning" if it works but has risks, "problem" if it's
 wrong or misused. "issues" and "alternatives" may be empty arrays. Keep each string
-under 2 sentences.`;
+under 2 sentences.`
+  ].filter(Boolean).join('\n\n');
 
   return { system: NODE_REVIEW_SYSTEM_PROMPT, user };
 }

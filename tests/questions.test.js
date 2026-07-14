@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { QUESTIONS } from '../js/data/questions.js';
+import { QUESTIONS, FREE_DESIGN } from '../js/data/questions.js';
 
 const PLATFORMS = new Set(['AWS', 'Azure', 'GCP', 'Agnostic']);
 const DIFFICULTIES = new Set(['Easy', 'Medium', 'Hard']);
@@ -31,4 +31,15 @@ test('question ids are unique', () => {
 test('covers AWS, Azure, and Agnostic at minimum', () => {
   const platforms = new Set(QUESTIONS.map(q => q.platform));
   for (const p of ['AWS', 'Azure', 'Agnostic']) assert.ok(platforms.has(p), `missing ${p}`);
+});
+
+test('FREE_DESIGN is a blank-canvas pseudo-question outside the seeded set', () => {
+  assert.equal(FREE_DESIGN.id, 'free-design');
+  assert.equal(typeof FREE_DESIGN.title, 'string');
+  assert.ok(FREE_DESIGN.title.length > 0);
+  assert.ok(FREE_DESIGN.prompt.length > 20, 'prompt should be descriptive');
+  assert.deepEqual(FREE_DESIGN.requirements, []);
+  assert.deepEqual(FREE_DESIGN.expectsConcepts, []);
+  assert.ok(!QUESTIONS.some(q => q.id === FREE_DESIGN.id), 'id must not collide');
+  assert.ok(!QUESTIONS.includes(FREE_DESIGN), 'must not be seeded into QUESTIONS');
 });
