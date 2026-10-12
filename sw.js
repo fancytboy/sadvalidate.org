@@ -1,6 +1,6 @@
 // CACHE is a content hash - regenerate after changing any asset with:
 // npm run sw:bump   (tools/update-sw-cache.mjs)
-const CACHE = 'sdp-cache-6990be644b';
+const CACHE = 'sdp-cache-856362ff15';
 
 const ASSETS = [
   './',
