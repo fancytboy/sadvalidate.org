@@ -132,5 +132,20 @@ export const QUESTIONS = [
       'Absorb traffic spikes without losing data'
     ],
     expectsConcepts: ['metrics agent: push vs pull scraping', 'buffering / streaming ingestion', 'time-series database', 'downsampling & retention', 'aggregation / rollups', 'alerting on thresholds', 'dashboards & visualization']
+  },
+  {
+    id: 'ota-frontend-azure',
+    title: 'Multi-market OTA Frontend',
+    platform: 'Azure',
+    difficulty: 'Hard',
+    prompt: 'Design the Azure hosting architecture for the Angular frontend of a multi-market online travel agency. The app must serve many markets (domains, languages, currencies) with fast load times worldwide, stay up through regional outages and deployments, and include telemetry so teams can see real-user performance and errors per market.',
+    requirements: [
+      'Serve the Angular app to all markets with low latency worldwide',
+      'Survive a regional outage with automatic failover and no user-visible downtime',
+      'Route each market (domain/locale) to the right app configuration',
+      'Deploy new frontend versions safely with instant rollback',
+      'Capture real-user telemetry (load times, errors, API timings) segmented per market'
+    ],
+    expectsConcepts: ['static asset hosting', 'CDN / edge caching (Front Door)', 'multi-region deployment & failover', 'health probes & origin routing', 'per-market routing / configuration', 'canary or blue-green releases', 'cache invalidation & asset versioning', 'real-user monitoring (Application Insights)']
   }
 ];

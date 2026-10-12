@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-10-12
+
+### Added
+
+- 35 components in the palette: Jenkins and GitHub Actions under Generic;
+  ALB, NLB, WAF, Secrets Manager, KMS, EBS, Athena, Neptune, Glue, Elastic
+  Beanstalk, MSK, SES, CloudTrail, and X-Ray under AWS; Load Balancer,
+  Traffic Manager, Azure Firewall, Key Vault, App Configuration, Azure
+  DevOps, Files, Container Registry, PostgreSQL, Databricks, Logic Apps,
+  Data Factory, SignalR Service, Notification Hubs, Application Insights,
+  Alerts, Workbooks, Power BI, and Managed Grafana under Azure.
+- "Multi-market OTA Frontend" question (Azure, Hard): hosting an Angular
+  frontend across markets with edge caching, regional failover, per-market
+  routing, safe releases, and real-user telemetry.
+
 ## [0.3.0] - 2026-07-14
 
 ### Added
